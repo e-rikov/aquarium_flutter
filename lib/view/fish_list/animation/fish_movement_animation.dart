@@ -1,21 +1,17 @@
 import 'dart:math';
 
 import 'package:aquariumflutter/core/animation/movement_animation.dart';
-import 'package:aquariumflutter/core/environment.dart';
 import 'package:aquariumflutter/core/tools/math_tools.dart';
 import 'package:aquariumflutter/core/tools/random_extentions.dart';
-import 'package:flutter/animation.dart';
-import 'package:flutter/material.dart';
-
-import 'package:aquariumflutter/core/tools/time_extentions.dart';
 
 import 'animation_descriptor.dart';
 
 class FishMovementAnimation implements MovementAnimation {
 
+    Point<double> _position = Point(double.nan, double.nan);
+
     @override
-    Point<double> get position =>
-        _animation?.value ?? Point(double.nan, double.nan);
+    Point<double> get position => _position;
 
     double _dx;
     double _dy;
@@ -26,11 +22,7 @@ class FishMovementAnimation implements MovementAnimation {
     @override
     double get dy => _dy;
 
-    AnimationController _animationController;
-    Animation _animation;
-
     final int _fishSize;
-    final Environment _environment;
     final _random = Random();
 
     AnimationDescriptor _currentAnimationDescriptor;
@@ -38,44 +30,15 @@ class FishMovementAnimation implements MovementAnimation {
     Function _onChangeListener;
 
 
-    FishMovementAnimation({
-        int fishSize,
-        Environment environment,
-        TickerProvider tickerProvider
-    }):
-        _fishSize = fishSize,
-        _environment = environment
-    {
+    FishMovementAnimation(this._fishSize) {
         final animationState = _getNextAnimationDescriptor();
-
-        _animationController = AnimationController(
-            duration: animationState.duration.seconds,
-            vsync: tickerProvider);
-
-        _animationController.forward();
-
-        final tween = Tween<Point<double>>(
-            begin: animationState.startPoint,
-            end: animationState.endPoint);
-
-        _animation = tween.animate(_animationController)
-            ..addStatusListener((status) {
-                if (status == AnimationStatus.completed) {
-                    final nextAnimationState = _getNextAnimationDescriptor();
-                    tween.begin = nextAnimationState.startPoint;
-                    tween.end = nextAnimationState.endPoint;
-                    _animationController.reset();
-                    _animationController.duration =
-                        nextAnimationState.duration.seconds;
-                    _animationController.forward();
-                }
-            });
+        _position = animationState.startPoint;
+        _currentAnimationDescriptor = animationState;
     }
 
 
     @override
     dispose() {
-        _animationController.dispose();
         _removeOnChangeListener();
     }
 
@@ -84,6 +47,12 @@ class FishMovementAnimation implements MovementAnimation {
             _dx = _random.getNextNormalizedDouble();
             _dy = _random.getNextNormalizedDouble();
         } while (_dx == 0.0 && _dy == 0.0);
+
+        // Normalize direction:
+        final l = sqrt(_dx*_dx + _dy*_dy) * 1000.0;
+        final speedFactor = (3 - _fishSize + 1).toDouble();
+        _dx *= speedFactor / l;
+        _dy *= speedFactor / l;
 
         // Умножение на 0.8 нужно чтобы избежать появление рыбки у края:
         final resultStartPoint = _currentAnimationDescriptor != null
@@ -98,28 +67,10 @@ class FishMovementAnimation implements MovementAnimation {
             dx: _dx,
             dy: _dy);
 
-        final d = _distance(resultStartPoint, resultEndPoint);
-        final duration = (d * 10.0 / 2.0 * _fishSize).toInt();
-
-        _currentAnimationDescriptor = AnimationDescriptor(
+        return AnimationDescriptor(
             startPoint: resultStartPoint,
             endPoint: resultEndPoint,
-            duration: duration);
-
-        return _currentAnimationDescriptor;
-    }
-
-    double _distance(Point<double> startPoint, Point<double> endPoint) {
-        double dx = startPoint.x - endPoint.x;
-        double dy = startPoint.y - endPoint.y;
-
-        if (_environment.width < _environment.height) {
-            dy = _environment.height * dy / _environment.width;
-        } else {
-            dx = _environment.width * dx / _environment.height;
-        }
-
-        return sqrt(dx * dx + dy * dy);
+            duration: -1);
     }
 
     @override
@@ -131,22 +82,25 @@ class FishMovementAnimation implements MovementAnimation {
 
         if (value != null) {
             _onChangeListener = value;
-            _animation?.addListener(value);
         }
     }
 
     _removeOnChangeListener() {
-        final onChangeListener = _onChangeListener;
         _onChangeListener = null;
-
-        if (onChangeListener != null) {
-            _animation.removeListener(onChangeListener);
-        }
     }
 
     @override
     makeStep() {
-        // Not implemented.
+        double x = _position.x + _dx;
+        double y = _position.y + _dy;
+
+        while ((x < -1.0) || (1.0 < x) || (y < -1.0) || (1.0 < y)) {
+            _currentAnimationDescriptor = _getNextAnimationDescriptor();
+            x = _currentAnimationDescriptor.startPoint.x;
+            y = _currentAnimationDescriptor.startPoint.y;
+        }
+
+        _position = Point(x, y);
     }
 
 }

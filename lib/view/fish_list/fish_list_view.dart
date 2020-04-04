@@ -17,19 +17,13 @@ class FishListView extends StatefulWidget {
 
 }
 
-class _FishListState extends State<FishListView> with TickerProviderStateMixin {
+class _FishListState extends State<FishListView> {
 
     FishListInteractor _interactor;
-
-    Function _onChangeListener;
 
     @override
     void initState() {
         super.initState();
-
-        _onChangeListener = () {
-            setState(() {});
-        };
 
         Future.delayed(Duration.zero, () {
             setState(() {
@@ -37,7 +31,7 @@ class _FishListState extends State<FishListView> with TickerProviderStateMixin {
                     width: MediaQuery.of(context).size.width,
                     height: MediaQuery.of(context).size.height);
 
-                final animationFactory = FishMovementAnimationFactory(this, environment);
+                final animationFactory = FishMovementAnimationFactory();
                 final fishFactory = FishFactoryImpl(animationFactory, environment);
                 final repo = FishListRepoImpl(fishFactory);
 
@@ -45,6 +39,8 @@ class _FishListState extends State<FishListView> with TickerProviderStateMixin {
                     repo,
                     FISH_APPEARANCE_TIME_IN_SECONDS.seconds,
                     FishListInteractionTimerFactory());
+
+                _interactor.onChange = () => setState(() {});
             });
         });
     }
@@ -68,10 +64,7 @@ class _FishListState extends State<FishListView> with TickerProviderStateMixin {
 
                 return Stack(
                     children: fishList
-                        .map((fish) {
-                            fish.onChangeListener = _onChangeListener;
-                            return FishView(fish);
-                        })
+                        .map((fish) => FishView(fish))
                         .toList(),
                 );
             });
