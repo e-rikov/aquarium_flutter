@@ -45,7 +45,7 @@ class FishInteractor implements Fish {
 
     @override
     makeStep() {
-        // Not implemented.
+        _movementAnimation.makeStep();
     }
 
     @override
