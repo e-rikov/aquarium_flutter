@@ -44,8 +44,8 @@ class FishMovementAnimation implements MovementAnimation {
 
     AnimationDescriptor _getNextAnimationDescriptor() {
         do {
-            _dx = _random.getNextNormalizedDouble();
-            _dy = _random.getNextNormalizedDouble();
+            _dx = _random.getNextNormalizedDouble;
+            _dy = _random.getNextNormalizedDouble;
         } while (_dx == 0.0 && _dy == 0.0);
 
         // Normalize direction:
@@ -58,8 +58,8 @@ class FishMovementAnimation implements MovementAnimation {
         final resultStartPoint = _currentAnimationDescriptor != null
             ? _currentAnimationDescriptor.endPoint
             : Point<double>(
-            _random.getNextNormalizedDouble() * 0.8,
-            _random.getNextNormalizedDouble() * 0.8);
+            _random.getNextNormalizedDouble * 0.8,
+            _random.getNextNormalizedDouble * 0.8);
 
         final resultEndPoint = getIntersectionWithUnitSquare(
             sx: resultStartPoint.x,
